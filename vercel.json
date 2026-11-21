@@ -4,7 +4,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 300,
-      "excludeFiles": "{.git,.venv,venv,tests,frontend,data_samples,ml_engine/data,.EasyOCR,backend/kyc_fraud.db,backend/uploads,.pytest_cache,__pycache__}/**"
+      "excludeFiles": "{.git/**,.venv/**,venv/**,tests/**,frontend/**,data_samples/**,ml_engine/data/**,.EasyOCR/**,backend/uploads/**,backend/kyc_fraud.db,.pytest_cache/**,**/__pycache__/**,ml_engine/src/train_models.py,ml_engine/src/test_explainer.py,migrations/**}"
     }
   }
 }

@@ -17,12 +17,22 @@ dependencies = [
   "shap==0.54.1",
   "joblib==1.4.0",
   "easyocr==1.7.2",
-  "torch==2.5.1",
+  "torch==2.5.1+cpu",
+  "torchvision==0.20.1+cpu",
   "opencv-python-headless==4.10.0.84",
   "Pillow==12.3.0",
   "rapidfuzz==3.9.0",
   "supabase==2.34.1"
 ]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.vercel]
 entrypoint = "api.index:app"

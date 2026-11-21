@@ -3,6 +3,7 @@ uvicorn==0.40.0
 pydantic==2.13.5
 pydantic-settings==2.16.3
 python-multipart==0.0.20
+--extra-index-url https://download.pytorch.org/whl/cpu
 
 SQLAlchemy==2.0.58
 psycopg[binary]==3.2.12
@@ -15,7 +16,8 @@ shap==0.54.1
 joblib==1.4.0
 
 easyocr==1.7.2
-torch==2.5.1
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
 opencv-python-headless==4.10.0.84
 Pillow==12.3.0
 rapidfuzz==3.9.0
