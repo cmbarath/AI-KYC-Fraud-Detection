@@ -1,0 +1,86 @@
+{
+  "best_model": "Random_Forest",
+  "feature_names": [
+    "age",
+    "declared_income",
+    "ocr_name_match_score",
+    "ocr_id_match_score",
+    "ocr_dob_match_score",
+    "tampered_document_flag",
+    "duplicate_id_count",
+    "duplicate_phone_count",
+    "duplicate_email_count",
+    "ip_risk_score",
+    "device_reuse_count",
+    "disposable_email",
+    "registration_velocity",
+    "address_mismatch_flag",
+    "id_type_DEMO_DRIVERS_LICENSE",
+    "id_type_DEMO_NATIONAL_ID",
+    "id_type_DEMO_PASSPORT",
+    "employment_type_Freelance",
+    "employment_type_Salaried",
+    "employment_type_Self-Employed",
+    "employment_type_Student",
+    "employment_type_Unemployed",
+    "channel_Mobile_App",
+    "channel_Partner_Agent",
+    "channel_Web"
+  ],
+  "models": {
+    "Logistic_Regression": {
+      "accuracy": 0.9667,
+      "precision": 0.95,
+      "recall": 0.8782,
+      "f1_score": 0.9127,
+      "roc_auc": 0.9383,
+      "pr_auc": 0.8903,
+      "confusion_matrix": [
+        [
+          951,
+          11
+        ],
+        [
+          29,
+          209
+        ]
+      ]
+    },
+    "Random_Forest": {
+      "accuracy": 0.9708,
+      "precision": 0.9677,
+      "recall": 0.8824,
+      "f1_score": 0.9231,
+      "roc_auc": 0.9365,
+      "pr_auc": 0.9052,
+      "confusion_matrix": [
+        [
+          955,
+          7
+        ],
+        [
+          28,
+          210
+        ]
+      ]
+    },
+    "XGBoost": {
+      "accuracy": 0.97,
+      "precision": 0.9633,
+      "recall": 0.8824,
+      "f1_score": 0.9211,
+      "roc_auc": 0.9368,
+      "pr_auc": 0.9177,
+      "confusion_matrix": [
+        [
+          954,
+          8
+        ],
+        [
+          28,
+          210
+        ]
+      ]
+    }
+  }
+}
