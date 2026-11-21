@@ -1,10 +1,15 @@
 import os
 import re
 import tempfile
+from typing import Dict, Any, List, Tuple
+
 import cv2
 import numpy as np
-import easyocr
-from typing import Dict, Any, List, Tuple
+
+from backend.app.easyocr_compat import import_easyocr
+
+easyocr = import_easyocr()
+
 
 class OCRService:
     _instance = None

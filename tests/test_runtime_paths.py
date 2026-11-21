@@ -53,16 +53,18 @@ def test_data_dir_environment_override_is_preserved(monkeypatch, tmp_path):
     assert Path(configured.DATA_DIR) == override
 
 
-def test_vercel_app_import_only_creates_temporary_runtime_directories(tmp_path):
+def test_vercel_app_import_keeps_runtime_directories_out_of_project_root(tmp_path):
     project_root = Path(__file__).resolve().parents[1]
     script = """
 import os
 import tempfile
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import easyocr
+import numpy as np
+from PIL import Image
 
 root = Path(os.environ["AI_KYC_TEST_PROJECT_ROOT"]).resolve()
 real_makedirs = os.makedirs
@@ -73,10 +75,30 @@ def guarded_makedirs(path, *args, **kwargs):
     created_paths.append(resolved)
     return real_makedirs(path, *args, **kwargs)
 
-with patch("os.makedirs", side_effect=guarded_makedirs), patch.object(
-    easyocr, "Reader", return_value=SimpleNamespace(device="cpu")
-):
-    import backend.app.main as main
+with patch("os.makedirs", side_effect=guarded_makedirs):
+    import backend.app.easyocr_compat as compat
+    easyocr = compat.import_easyocr()
+    assert easyocr.imgproc.io.imread is compat.pillow_imread
+    assert "skimage" not in sys.modules
+
+    with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as image_dir:
+        image_dir = Path(image_dir)
+        examples = (
+            ("RGB", ".jpg", (214, 45, 17), (214, 45, 17), 3),
+            ("RGB", ".png", (15, 67, 201), (15, 67, 201), 0),
+            ("L", ".png", 71, (71, 71, 71), 0),
+            ("RGBA", ".png", (11, 37, 89, 0), (11, 37, 89), 0),
+        )
+        for index, (mode, extension, color, expected, tolerance) in enumerate(examples):
+            image_path = image_dir / f"image-{index}{extension}"
+            Image.new(mode, (9, 7), color).save(image_path)
+            image = easyocr.imgproc.loadImage(str(image_path))
+            assert image.shape == (7, 9, 3)
+            assert np.allclose(image[0, 0], expected, atol=tolerance)
+
+    with patch.object(easyocr, "Reader", return_value=SimpleNamespace(device="cpu")):
+        import backend.app.main as main
+
     import backend.app.config as config
     configured = config.Settings(_env_file=None)
     data_dir = Path(configured.DATA_DIR).resolve()
@@ -86,16 +108,11 @@ with patch("os.makedirs", side_effect=guarded_makedirs), patch.object(
         Path(config.settings.MODEL_DIR).resolve()
         == root / "ml_engine" / "saved_models"
     )
-    assert created_paths
-    assert all(
-        Path(tempfile.gettempdir()).resolve() == path
-        or Path(tempfile.gettempdir()).resolve() in path.parents
-        for path in created_paths
-    )
+    assert Path(tempfile.gettempdir()).resolve() / ".EasyOCR" in created_paths
 """
     environment = os.environ.copy()
     environment["VERCEL"] = "1"
-    environment["DATABASE_URL"] = "postgresql+psycopg://test:test@localhost/test"
+    environment["DATABASE_URL"] = "postgresql+psycopg://127.0.0.1/test"
     environment["MODEL_DIR"] = str(project_root / "ml_engine" / "saved_models")
     environment["AI_KYC_TEST_PROJECT_ROOT"] = str(project_root)
     environment["TEMP"] = str(tmp_path)
@@ -103,14 +120,15 @@ with patch("os.makedirs", side_effect=guarded_makedirs), patch.object(
     environment.pop("DATA_DIR", None)
     environment.pop("BASE_DIR", None)
 
-    subprocess.run(
+    completed = subprocess.run(
         [sys.executable, "-c", script],
         cwd=project_root,
         env=environment,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_vercel_rejects_file_backed_sqlite():
