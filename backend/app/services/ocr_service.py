@@ -1,5 +1,6 @@
 import os
 import re
+import tempfile
 import cv2
 import numpy as np
 import easyocr
@@ -16,7 +17,10 @@ class OCRService:
             print("Initializing EasyOCR reader engine...")
             model_storage_directory = None
             if os.environ.get("VERCEL") == "1":
-                model_storage_directory = os.path.join("/tmp", ".EasyOCR")
+                model_storage_directory = os.path.join(
+                    tempfile.gettempdir(),
+                    ".EasyOCR",
+                )
                 os.makedirs(model_storage_directory, exist_ok=True)
             cls._reader = easyocr.Reader(
                 ['en'],
