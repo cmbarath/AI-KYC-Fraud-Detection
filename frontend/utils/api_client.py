@@ -33,6 +33,32 @@ class APIClient:
         configured_url = base_url or _configured_value("BACKEND_API_URL")
         self.base_url = (configured_url or DEFAULT_API_BASE_URL).rstrip("/")
 
+    @property
+    def health_url(self) -> Optional[str]:
+        try:
+            parsed = urlsplit(self.base_url)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.query
+                or parsed.fragment
+            ):
+                return None
+
+            hostname = parsed.hostname
+            if ":" in hostname:
+                hostname = f"[{hostname}]"
+            if parsed.port is not None:
+                hostname = f"{hostname}:{parsed.port}"
+
+            path_segments = [segment for segment in parsed.path.split("/") if segment]
+            while path_segments and path_segments[-1] == "health":
+                path_segments.pop()
+            path = "/" + "/".join(path_segments + ["health"])
+            return urlunsplit((parsed.scheme, hostname, path, "", ""))
+        except ValueError:
+            return None
+
     @staticmethod
     def _access_token(name: str) -> str:
         token = _configured_value(name)
@@ -51,11 +77,71 @@ class APIClient:
         return {"X-Admin-Access-Token": admin_token}
 
     def check_health(self) -> Dict[str, Any]:
+        health_url = self.health_url
+        if health_url is None:
+            return {
+                "status": "offline",
+                "diagnostic": (
+                    "Invalid BACKEND_API_URL. Configure an HTTP(S) backend base URL "
+                    "without query parameters or a fragment."
+                ),
+            }
+
         try:
-            resp = requests.get(f"{self.base_url}/health", timeout=3)
-            return resp.json() if resp.status_code == 200 else {"status": "unhealthy"}
-        except Exception:
-            return {"status": "offline"}
+            resp = requests.get(health_url, timeout=20)
+        except requests.exceptions.Timeout:
+            return {
+                "status": "offline",
+                "diagnostic": (
+                    "The health check timed out after 20 seconds. The backend may "
+                    "still be starting or may be temporarily overloaded."
+                ),
+            }
+        except requests.exceptions.ConnectionError:
+            return {
+                "status": "offline",
+                "diagnostic": (
+                    "Could not connect to the backend. Check the configured URL and "
+                    "confirm the service is reachable."
+                ),
+            }
+        except requests.exceptions.RequestException:
+            return {
+                "status": "offline",
+                "diagnostic": (
+                    "The health-check request failed. Check the backend URL and "
+                    "network access."
+                ),
+            }
+
+        if resp.status_code != 200:
+            return {
+                "status": "unhealthy",
+                "diagnostic": f"The backend returned HTTP {resp.status_code} for its health check.",
+            }
+
+        try:
+            result = resp.json()
+        except ValueError:
+            return {
+                "status": "unhealthy",
+                "diagnostic": "The backend returned invalid JSON for its health check.",
+            }
+
+        if not isinstance(result, dict) or not isinstance(result.get("status"), str):
+            return {
+                "status": "unhealthy",
+                "diagnostic": (
+                    "The backend health response did not contain a valid status."
+                ),
+            }
+
+        result["diagnostic"] = (
+            "The backend health check succeeded."
+            if result["status"] == "healthy"
+            else "The backend responded but is not reporting a healthy status."
+        )
+        return result
 
     def register_kyc(self, data: Dict[str, Any]) -> Dict[str, Any]:
         resp = requests.post(

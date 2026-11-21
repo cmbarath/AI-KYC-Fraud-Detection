@@ -26,12 +26,14 @@ if os.path.exists(css_path):
 with st.sidebar:
     st.markdown("### ⚙️ System Status")
     health = api_client.check_health()
+    st.text(f"Health endpoint: {api_client.health_url or 'Invalid BACKEND_API_URL'}")
     if health.get("status") == "healthy":
         st.success("● Backend API: Connected & Ready")
+        st.caption(health["diagnostic"])
         st.caption("DB: Configured backend | Engine: EasyOCR + XGB/RF")
     else:
-        st.warning("⚠️ Backend API Offline or Initializing")
-        st.caption("Ensure FastAPI is running on `http://127.0.0.1:8000`")
+        st.warning("⚠️ Backend API Offline or Unhealthy")
+        st.caption(health["diagnostic"])
     
     st.divider()
     st.markdown("### 📌 Navigation")
